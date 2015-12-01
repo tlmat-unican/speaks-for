@@ -11,7 +11,8 @@ var singleDayMillis = 86400000;
 var yargs = require('yargs');
 var argv = yargs
     .usage('Usage: $0 -s <file-path>')
-    .example('$0 -s s4cred.base64', 'Validate a speaks-for credential and checks signature validi')
+    .example('$0 -s s4cred.base64 -f base64', 'Validates a base64 encoded speaks-for credential')
+    .example('$0 -v -s s4cred.xml -f xml', 'Validates an xml encoded speaks-for credential with extra verbosity level')
     .options({
         's': {
             alias: 's4credential',

@@ -59,4 +59,4 @@ Fed4FIRE - University of Cantabria - Copyright 2015
 ```
 
 ## Hints
-To convert decode a base64 encoded credential you can use ```base64 --decode s4cred.base64```
+To decode a base64 encoded credential you can use ```base64 --decode s4cred.base64```
