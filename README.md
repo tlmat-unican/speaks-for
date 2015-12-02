@@ -59,4 +59,6 @@ Fed4FIRE - University of Cantabria - Copyright 2015
 ```
 
 ## Hints
-If you need to decode a base64 encoded credential you can use ```base64 --decode s4cred.base64``` (on Linux)
+If you need to decode a base64 encoded credential you can use ```base64 --decode s4cred.base64 > s4cred.xml``` (on Linux)
+
+You can check tool certificates information with ```openssl x509 -in <pem_file> -text -noout``` (on Linux)
