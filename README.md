@@ -1,7 +1,7 @@
 # Fed4FIRE Speaks-For credential management tools
 
 ## Installation
-Just install Node.JS and run ```npm install``` on this folder. The tools have been tested on Ubuntu 14.04, but should also work on Windows and MacOS as well.
+Just install Node.JS and run ```npm install -g speaks-for```. The tools have been tested on Ubuntu 14.04, but should also work on Windows and MacOS as well.
 
 ## Credential generation
 
@@ -59,4 +59,4 @@ Fed4FIRE - University of Cantabria - Copyright 2015
 ```
 
 ## Hints
-To decode a base64 encoded credential you can use ```base64 --decode s4cred.base64```
+If you need to decode a base64 encoded credential you can use ```base64 --decode s4cred.base64``` (on Linux)
