@@ -118,14 +118,14 @@ try {
     expireDate.setTime(expireDate.getTime() + timeOffset);
 
     // Load credential template file and generate the XML
-    credentialTemplate = _.template(fs.readFileSync("resources/credential-template.txt", "utf8"))
+    credentialTemplate = _.template(fs.readFileSync(require('path').resolve(__dirname, 'resources', 'credential-template.txt'), "utf8"));
     xml = credentialTemplate({
         'expires': expireDate.toISOString(),
         'userKeyhash': userKeyhash,
         'toolKeyhash': toolKeyhash
     });
     var toolPublicId = extractFed4FIREPublicId(toolCertificate);
-    WARN("## Speaks-for credential will be delegated to [%s] tool until %s", toolPublicId, expireDate.toISOString())
+    WARN("## Speaks-for credential will be delegated to [%s] tool until %s", toolPublicId, expireDate.toISOString());
     DEBUG("\n## XML Template to be signed:\n%s", _.trim(xml, ' \n'));
 
     utils.monkeyPatchSignedXmlExclusiveCanonicalization(xmlcrypto);
