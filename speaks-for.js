@@ -118,7 +118,7 @@ try {
     expireDate.setTime(expireDate.getTime() + timeOffset);
 
     // Load credential template file and generate the XML
-    credentialTemplate = _.template(fs.readFileSync("credential-template.txt", "utf8"))
+    credentialTemplate = _.template(fs.readFileSync("resources/credential-template.txt", "utf8"))
     xml = credentialTemplate({
         'expires': expireDate.toISOString(),
         'userKeyhash': userKeyhash,
