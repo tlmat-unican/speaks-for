@@ -16,7 +16,7 @@
     "lodash": "^3.10.1",
     "node-forge": "^0.6.38",
     "xml-crypto": "^0.8.1",
-    "xmldom": "^0.1.19",
+    "libxml-xsd": "psotres/node-libxml-xsd#master",
     "yargs": "^3.30.0",
     "pretty-data": "^0.40.0"
   },
