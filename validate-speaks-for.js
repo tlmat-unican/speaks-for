@@ -3,7 +3,8 @@
 var fs = require('fs');
 var _ = require('lodash');
 var xmlcrypto = require('xml-crypto');
-var dom = require('xmldom').DOMParser;
+var xsd = require('libxml-xsd');
+var libxml = require('libxmljs-mt');
 
 var utils = require('./utils');
 
@@ -57,30 +58,51 @@ function DEBUG() {
     VERBOSE_LEVEL >= 2 && console.log.apply(console, arguments);
 }
 
-try {
-    INFO("## Loading Speaks-for credential...");
-    var s4cred = loadSpeaksForCredential(argv.s4credential, argv.format === 'base64');
-    INFO("## Speaks-for credential content: \n%s\n", s4cred);
+// Load XSD schema
+var olddir = process.cwd();
+process.chdir(require('path').resolve(__dirname, 'resources'));
+var xsdstr = fs.readFileSync('credential.xsd', "utf8");
+var schema = xsd.parse(xsdstr);
+process.chdir(olddir);
 
-    var doc = new dom().parseFromString(s4cred);
-    var signature = xmlcrypto.xpath(doc, "/*/*/*[local-name(.)='Signature' and namespace-uri(.)='http://www.w3.org/2000/09/xmldsig#']")[0];
-    utils.monkeyPatchSignedXmlExclusiveCanonicalization(xmlcrypto);
-    var sig = new xmlcrypto.SignedXml(null, {
-        idAttribute: "id"
-    });
-    sig.keyInfoProvider = new SpeaksForKeyInfo();
-    sig.loadSignature(signature.toString());
-    var res = sig.checkSignature(s4cred);
-    if (res) {
-        WARN("## Verification succeeded!!")
-    } else {
-        throw new Error(sig.validationErrors[0]);
+// Load Speaks-for Credential
+INFO("## Loading Speaks-for credential...");
+var s4cred = loadSpeaksForCredential(argv.s4credential, argv.format === 'base64');
+DEBUG("## Speaks-for credential content: \n%s\n", s4cred);
+libxml.Document.fromXmlAsync(s4cred, {}, function(err, doc) {
+    if (err) {
+        WARN("## ERROR: %s", err);
+        return;
     }
-} catch (error) {
-    WARN("## ERROR: %s", error);
-    return;
-}
+    // Validate document agains schema
+    schema.validate(doc, function(err, validationErrors) {
+        if (err) {
+            WARN("## ERROR: %s", err);
+            return;
+        }
+        // validationErrors is an array, null if the validation is ok
+        if (validationErrors) {
+            WARN("## ERROR: %s", validationErrors[0]);
+            return;
+        } else {
+            INFO("## Supplied credential validates Speaks-For XML schema!!")
+        }
 
+        var signature = doc.get("/*/*/*[local-name(.)='Signature' and namespace-uri(.)='http://www.w3.org/2000/09/xmldsig#']");
+        utils.monkeyPatchSignedXmlExclusiveCanonicalization(xmlcrypto);
+        var sig = new xmlcrypto.SignedXml(null, {
+            idAttribute: "id"
+        });
+        sig.keyInfoProvider = new SpeaksForKeyInfo();
+        sig.loadSignature(signature.toString());
+        var res = sig.checkSignature(s4cred);
+        if (res) {
+            WARN("## Signature verification succeeded!!")
+        } else {
+            WARN("## ERROR: %s", sig.validationErrors[0]);
+        }
+    });
+});
 
 function loadSpeaksForCredential(s4credential, isBase64) {
     var bitmap = fs.readFileSync(s4credential, 'utf8');
