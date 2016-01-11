@@ -11,7 +11,7 @@ var utils = require('./utils');
 var singleDayMillis = 86400000;
 var yargs = require('yargs');
 var argv = yargs
-    .usage('Usage: $0 -c <file-path> -f <p12|pem> -p <password> -t <file-path> -d 10 -o <file-path>')
+    .usage('Usage: $0 -c <file-path> -f <p12|pem> -p <password> -t <file-path> -d <int> -o <file-path>')
     .example('$0 -c user123.p12 -f p12 -p 123456 -t yourepm.pem', 'Generate a speaks-for credential which delegates access to YourEPM tool during 120 days. In this case the signing credential is a PKCS#12 container')
     .example('$0 --credential user123.pem --format pem --password 123456 --toolcertificate yourepm.pem --duration 365', 'The Fed4FIRE user credential is PEM formatted, and access is delegated during 1 year')
     .example('$0 -vv -c user123.p12 -f pem -p 123456 -t yourepm.pem -d 365 -o s4cred.base64', 'Same command as previous one, but with DEBUG verbosity and storing the result on an output file')

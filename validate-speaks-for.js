@@ -14,7 +14,7 @@ var utils = require('./utils');
 var singleDayMillis = 86400000;
 var yargs = require('yargs');
 var argv = yargs
-    .usage('Usage: $0 -s <file-path>')
+    .usage('Usage: $0 -s <file-path> -f <base64|xml> -t <folder-path>')
     .example('$0 -s s4cred.base64 -f base64', 'Validates a base64 encoded speaks-for credential using bundled CA')
     .example('$0 -s s4cred.base64 -f base64 -t ./ca', 'Validates a base64 encoded speaks-for credential selecting an specific CA folder')
     .example('$0 -v -s s4cred.xml -f xml', 'Validates an xml encoded speaks-for credential with extra verbosity level using bundled CA')

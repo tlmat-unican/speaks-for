@@ -6,7 +6,7 @@ Just install Node.JS and run ```npm install -g speaks-for```. The tools have bee
 ## Credential generation
 
 ```
-Usage: speaks-for -c <file-path> -f <p12|pem> -p <password> -t <file-path> -d 10 -o <file-path>
+Usage: speaks-for -c <file-path> -f <p12|pem> -p <password> -t <file-path> -d <int> -o <file-path>
 
 Signing User
   -c, --credential  User credential file path                                                            [required]
@@ -39,7 +39,7 @@ Fed4FIRE - University of Cantabria - Copyright 2016
 ## Credential validation
 
 ```
-Usage: validate-speaks-for -s <file-path>
+Usage: validate-speaks-for -s <file-path> -f <base64|xml> -t <folder-path>
 
 Speaks-for Parameters
   -s, --s4credential  Speaks-for credential file                                                         [required]
