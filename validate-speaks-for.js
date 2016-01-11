@@ -15,8 +15,9 @@ var singleDayMillis = 86400000;
 var yargs = require('yargs');
 var argv = yargs
     .usage('Usage: $0 -s <file-path>')
-    .example('$0 -s s4cred.base64 -f base64', 'Validates a base64 encoded speaks-for credential')
-    .example('$0 -v -s s4cred.xml -f xml', 'Validates an xml encoded speaks-for credential with extra verbosity level')
+    .example('$0 -s s4cred.base64 -f base64', 'Validates a base64 encoded speaks-for credential using bundled CA')
+    .example('$0 -s s4cred.base64 -f base64 -t ./ca', 'Validates a base64 encoded speaks-for credential selecting an specific CA folder')
+    .example('$0 -v -s s4cred.xml -f xml', 'Validates an xml encoded speaks-for credential with extra verbosity level using bundled CA')
     .options({
         's': {
             alias: 's4credential',
@@ -47,7 +48,7 @@ var argv = yargs
     .help('h')
     .alias('h', 'help')
     .version(0.9)
-    .epilog('Fed4FIRE - University of Cantabria - Copyright 2015')
+    .epilog('Fed4FIRE - University of Cantabria - Copyright 2016')
     .strict()
     .wrap(yargs.terminalWidth())
     .argv;
@@ -134,13 +135,13 @@ libxml.Document.fromXmlAsync(s4cred, {}, function(err, doc) {
                 DEBUG("## The Speaks-for signing certificate is valid");
             }
             if (!result.verifiedCA) {
-                WARN("## ERROR: %s", outputMessages[1]);
+                WARN("## ERROR: Speaks-for signing certificate is not trusted. Reason: %s", outputMessages[1]);
                 return;
             } else {
                 DEBUG("## The Speaks-for signing certificate chain of trust has been verified");
             }
             if (result.expired) {
-                WARN("## ERROR: %s", outputMessages[1]);
+                WARN("## ERROR: Speaks-for signing certificate is not acceptable. Reason: %s", outputMessages[1]);
                 return;
             }
             INFO("## Stage 3. The signing certificate is valid and trusted");
