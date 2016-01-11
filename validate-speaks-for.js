@@ -47,7 +47,7 @@ var argv = yargs
     })
     .help('h')
     .alias('h', 'help')
-    .version(0.9)
+    .version(1.0)
     .epilog('Fed4FIRE - University of Cantabria - Copyright 2016')
     .strict()
     .wrap(yargs.terminalWidth())

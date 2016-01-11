@@ -67,8 +67,8 @@ var argv = yargs
     })
     .help('h')
     .alias('h', 'help')
-    .version(0.9)
-    .epilog('Fed4FIRE - University of Cantabria - Copyright 2015')
+    .version(1.0)
+    .epilog('Fed4FIRE - University of Cantabria - Copyright 2016')
     .strict()
     .wrap(yargs.terminalWidth())
     .argv;
@@ -152,7 +152,6 @@ try {
     WARN("## ERROR: %s", error);
     return;
 }
-
 
 function extractFed4FIREPublicId(cert) {
     var subjectAltName = cert.getExtension({
