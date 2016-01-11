@@ -5,7 +5,10 @@ var _ = require('lodash');
 var xmlcrypto = require('xml-crypto');
 var xsd = require('libxml-xsd');
 var libxml = require('libxmljs-mt');
+var forge = require('node-forge');
+var Dom = require('xmldom').DOMParser;
 
+var openssl = require('openssl-verify');
 var utils = require('./utils');
 
 var singleDayMillis = 86400000;
@@ -29,6 +32,12 @@ var argv = yargs
             description: "Provided Speaks-for credential file format",
             group: 'Speaks-for Parameters'
         },
+        't': {
+            alias: ['trustedCA'],
+            required: true,
+            description: "Trusted CA's folder path",
+            group: 'Speaks-for Parameters'
+        },
         'v': {
             alias: 'verbose',
             count: true,
@@ -42,7 +51,6 @@ var argv = yargs
     .strict()
     .wrap(yargs.terminalWidth())
     .argv;
-
 
 var VERBOSE_LEVEL = argv.verbose;
 
@@ -58,11 +66,15 @@ function DEBUG() {
     VERBOSE_LEVEL >= 2 && console.log.apply(console, arguments);
 }
 
-// Load XSD schema
+// Chdir to resources folder
 var olddir = process.cwd();
 process.chdir(require('path').resolve(__dirname, 'resources'));
+
+// Load XSD schema
 var xsdstr = fs.readFileSync('credential.xsd', "utf8");
 var schema = xsd.parse(xsdstr);
+
+// Chdir to working folder
 process.chdir(olddir);
 
 // Load Speaks-for Credential
@@ -84,11 +96,12 @@ libxml.Document.fromXmlAsync(s4cred, {}, function(err, doc) {
         if (validationErrors) {
             WARN("## ERROR: %s", validationErrors[0]);
             return;
-        } else {
-            INFO("## Supplied credential validates Speaks-For XML schema!!")
         }
+        INFO("## Stage 1. Supplied credential validates against the Speaks-for XSD schema");
 
-        var signature = doc.get("/*/*/*[local-name(.)='Signature' and namespace-uri(.)='http://www.w3.org/2000/09/xmldsig#']");
+        // Validate XML signature
+        var credential = doc.get("/*/credential");
+        var signature = doc.get("/*/signatures/*[local-name(.)='Signature' and namespace-uri(.)='http://www.w3.org/2000/09/xmldsig#']");
         utils.monkeyPatchSignedXmlExclusiveCanonicalization(xmlcrypto);
         var sig = new xmlcrypto.SignedXml(null, {
             idAttribute: "id"
@@ -96,11 +109,65 @@ libxml.Document.fromXmlAsync(s4cred, {}, function(err, doc) {
         sig.keyInfoProvider = new SpeaksForKeyInfo();
         sig.loadSignature(signature.toString());
         var res = sig.checkSignature(s4cred);
-        if (res) {
-            WARN("## Signature verification succeeded!!")
-        } else {
+        if (!res) {
             WARN("## ERROR: %s", sig.validationErrors[0]);
+            return;
         }
+        INFO("## Stage 2. XML signature is valid per the XML-DSig standard");
+
+        // Validate signing certificate
+        var x509Node = signature.get("*[name()='KeyInfo']/*[name()='X509Data']");
+        var x509Data = new Dom().parseFromString(x509Node.toString());
+        var signingCertificatePem = sig.keyInfoProvider.getKey([x509Data]);
+
+        // NOTE: Certificate chain validation is done by using OpenSSL command line calls (through openssl-verify package).
+        // It can also be done with forge library, but according to [https://github.com/digitalbazaar/forge/blob/master/js/x509.js#L2873]
+        // some checks are not yet implemented.
+        openssl.verifyCertificate(signingCertificatePem, argv.trustedCA, function(err, result) {
+            var outputMessages = result.output.split('\n');
+            if (!result.validCert) {
+                WARN("## ERROR: %s", outputMessages[0]);
+                return;
+            } else {
+                DEBUG("## The Speaks-for signing certificate is valid");
+            }
+            if (!result.verifiedCA) {
+                WARN("## ERROR: %s", outputMessages[1]);
+                return;
+            } else {
+                DEBUG("## The Speaks-for signing certificate chain of trust has been verified");
+            }
+            if (result.expired) {
+                WARN("## ERROR: %s", outputMessages[1]);
+                return;
+            }
+            INFO("## Stage 3. The signing certificate is valid and trusted");
+
+            var expirationDateStr = credential.get("expires").text();
+            DEBUG("## Speaks-for expiration date: %s", expirationDateStr);
+            if (new Date(expirationDateStr) < new Date()) {
+                WARN("## ERROR: Speaks-for credential expired on %s", expirationDateStr);
+                return;
+            }
+            INFO("## Stage 4. The expiration date has not passed");
+
+            var signingCertificate = forge.pki.certificateFromPem(signingCertificatePem);
+            var signingKeyhash = forge.pki.getPublicKeyFingerprint(signingCertificate.publicKey, {
+                encoding: 'hex'
+            });
+            var credentialKeyhash = credential.get("abac//head//keyid").text();
+            DEBUG("## Speaks-for credential head section keyhash: %s", credentialKeyhash);
+            DEBUG("## Speaks-for credential signing cert keyhash: %s", signingKeyhash);
+            if(signingKeyhash != credentialKeyhash) {
+                WARN("## ERROR: The keyid of the Speaks-for credential head [%s] does not match the credential signer one [%s]", credentialKeyhash, signingKeyhash);
+                return;
+            }
+            INFO("## Stage 5. The keyid of the head matches the credential signer (the SHA1 hash of the public key in the signing certificate)");
+
+            // TODO: Should  Speaks-for credential tail fingerprint (tool keyid) should be checked against tool own certificate?
+
+            WARN("## Speaks-for credential verification succeeded!!");
+        });
     });
 });
 
