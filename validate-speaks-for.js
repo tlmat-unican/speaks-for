@@ -34,7 +34,7 @@ var argv = yargs
         },
         't': {
             alias: ['trustedCA'],
-            required: true,
+            required: false,
             description: "Trusted CA's folder path",
             group: 'Speaks-for Parameters'
         },
@@ -74,6 +74,8 @@ process.chdir(require('path').resolve(__dirname, 'resources'));
 var xsdstr = fs.readFileSync('credential.xsd', "utf8");
 var schema = xsd.parse(xsdstr);
 
+// Resolve trusted CA folder
+var trustedCaPath = (argv.trustedCA) ? argv.trustedCA : require('path').resolve(__dirname, 'resources/ca');
 // Chdir to working folder
 process.chdir(olddir);
 
@@ -123,7 +125,7 @@ libxml.Document.fromXmlAsync(s4cred, {}, function(err, doc) {
         // NOTE: Certificate chain validation is done by using OpenSSL command line calls (through openssl-verify package).
         // It can also be done with forge library, but according to [https://github.com/digitalbazaar/forge/blob/master/js/x509.js#L2873]
         // some checks are not yet implemented.
-        openssl.verifyCertificate(signingCertificatePem, argv.trustedCA, function(err, result) {
+        openssl.verifyCertificate(signingCertificatePem, trustedCaPath, function(err, result) {
             var outputMessages = result.output.split('\n');
             if (!result.validCert) {
                 WARN("## ERROR: %s", outputMessages[0]);
@@ -158,7 +160,7 @@ libxml.Document.fromXmlAsync(s4cred, {}, function(err, doc) {
             var credentialKeyhash = credential.get("abac//head//keyid").text();
             DEBUG("## Speaks-for credential head section keyhash: %s", credentialKeyhash);
             DEBUG("## Speaks-for credential signing cert keyhash: %s", signingKeyhash);
-            if(signingKeyhash != credentialKeyhash) {
+            if (signingKeyhash != credentialKeyhash) {
                 WARN("## ERROR: The keyid of the Speaks-for credential head [%s] does not match the credential signer one [%s]", credentialKeyhash, signingKeyhash);
                 return;
             }
