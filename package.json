@@ -1,6 +1,6 @@
 {
   "name": "speaks-for",
-  "version": "0.9.2",
+  "version": "1.0.0",
   "description": "Fed4FIRE Speaks-For credential management tools",
   "author": "Pablo Sotres <psotres@tlmat.unican.es>",
   "license": "MIT",
@@ -16,9 +16,10 @@
     "lodash": "^3.10.1",
     "node-forge": "^0.6.38",
     "xml-crypto": "^0.8.1",
-    "xmldom": "^0.1.19",
+    "libxml-xsd": "psotres/node-libxml-xsd#master",
     "yargs": "^3.30.0",
-    "pretty-data": "^0.40.0"
+    "pretty-data": "^0.40.0",
+    "openssl-verify": "^0.1.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

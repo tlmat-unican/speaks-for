@@ -14,7 +14,7 @@ var argv = yargs
     .usage('Usage: $0 -c <file-path> -f <p12|pem> -p <password> -t <file-path> -d 10 -o <file-path>')
     .example('$0 -c user123.p12 -f p12 -p 123456 -t yourepm.pem', 'Generate a speaks-for credential which delegates access to YourEPM tool during 120 days. In this case the signing credential is a PKCS#12 container')
     .example('$0 --credential user123.pem --format pem --password 123456 --toolcertificate yourepm.pem --duration 365', 'The Fed4FIRE user credential is PEM formatted, and access is delegated during 1 year')
-    .example('$0 -vv -c user123.p12 -f ppem -p 123456 -t yourepm.pem -d 365 -o s4cred.base64', 'Same command as previous one, but with DEBUG verbosity and storing the result on an output file')
+    .example('$0 -vv -c user123.p12 -f pem -p 123456 -t yourepm.pem -d 365 -o s4cred.base64', 'Same command as previous one, but with DEBUG verbosity and storing the result on an output file')
     .options({
         'o': {
             alias: 'output',
@@ -118,14 +118,14 @@ try {
     expireDate.setTime(expireDate.getTime() + timeOffset);
 
     // Load credential template file and generate the XML
-    credentialTemplate = _.template(fs.readFileSync("credential-template.txt", "utf8"))
+    credentialTemplate = _.template(fs.readFileSync(require('path').resolve(__dirname, 'resources', 'credential-template.txt'), "utf8"));
     xml = credentialTemplate({
         'expires': expireDate.toISOString(),
         'userKeyhash': userKeyhash,
         'toolKeyhash': toolKeyhash
     });
     var toolPublicId = extractFed4FIREPublicId(toolCertificate);
-    WARN("## Speaks-for credential will be delegated to [%s] tool until %s", toolPublicId, expireDate.toISOString())
+    WARN("## Speaks-for credential will be delegated to [%s] tool until %s", toolPublicId, expireDate.toISOString());
     DEBUG("\n## XML Template to be signed:\n%s", _.trim(xml, ' \n'));
 
     utils.monkeyPatchSignedXmlExclusiveCanonicalization(xmlcrypto);
