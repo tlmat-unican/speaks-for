@@ -33,7 +33,7 @@ Examples:
   speaks-for -vv -c user123.p12 -f ppem -p 123456 -t         Same command as previous one, but with DEBUG verbosity
   yourepm.pem -d 365 -o s4cred.base64                        and storing the result on an output file
 
-Fed4FIRE - University of Cantabria - Copyright 2015
+Fed4FIRE - University of Cantabria - Copyright 2016
 ```
 
 ## Credential validation
@@ -44,6 +44,7 @@ Usage: validate-speaks-for -s <file-path>
 Speaks-for Parameters
   -s, --s4credential  Speaks-for credential file                                                         [required]
   -f, --format        Provided Speaks-for credential file format              [required] [choices: "base64", "xml"]
+  -t, --trustedCA     Trusted CA's folder path
 
 Options:
   -v, --verbose  Verbosity level (none, -v or -vv)                                                          [count]
@@ -51,14 +52,19 @@ Options:
   --version      Show version number                                                                      [boolean]
 
 Examples:
-  validate-speaks-for -s s4cred.base64 -f base64  Validates a base64 encoded speaks-for credential
-  validate-speaks-for -v -s s4cred.xml -f xml     Validates an xml encoded speaks-for credential with extra
-                                                  verbosity level
+  validate-speaks-for -s s4cred.base64 -f base64          Validates a base64 encoded speaks-for credential using
+                                                          bundled CA
+  validate-speaks-for -s s4cred.base64 -f base64 -t ./ca  Validates a base64 encoded speaks-for credential
+                                                          selecting an specific CA folder
+  validate-speaks-for -v -s s4cred.xml -f xml             Validates an xml encoded speaks-for credential with extra
+                                                          verbosity level using bundled CA
 
-Fed4FIRE - University of Cantabria - Copyright 2015
+Fed4FIRE - University of Cantabria - Copyright 2016
 ```
 
 ## Hints
 If you need to decode a base64 encoded credential you can use ```base64 --decode s4cred.base64 > s4cred.xml``` (on Linux)
 
 You can check tool certificates information with ```openssl x509 -in <pem_file> -text -noout``` (on Linux)
+
+CA certificates need to be named according to OpenSSL requirements, using the form: hash.0. You can use `rehash.sh` script (see _resources/ca_ folder) inside any folder to generate valid symbolic links to all the existing certificates present in that folder.
