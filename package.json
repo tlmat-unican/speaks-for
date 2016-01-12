@@ -13,13 +13,15 @@
     "url": "git@github.com:psotres/speaks-for.git"
   },
   "dependencies": {
+    "libxml-xsd": "psotres/node-libxml-xsd#master",
+    "libxmljs-mt": "^0.16.1",
     "lodash": "^3.10.1",
     "node-forge": "^0.6.38",
-    "xml-crypto": "^0.8.1",
-    "libxml-xsd": "psotres/node-libxml-xsd#master",
-    "yargs": "^3.30.0",
+    "openssl-verify": "^0.1.1",
     "pretty-data": "^0.40.0",
-    "openssl-verify": "^0.1.1"
+    "xml-crypto": "^0.8.1",
+    "xmldom": "^0.1.20",
+    "yargs": "^3.30.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
