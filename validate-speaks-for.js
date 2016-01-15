@@ -14,10 +14,12 @@ var utils = require('./utils');
 var singleDayMillis = 86400000;
 var yargs = require('yargs');
 var argv = yargs
-    .usage('Usage: $0 -s <file-path> -f <base64|xml> -t <folder-path>')
+    .usage('Usage: $0 -s <file-path> -f <base64|xml> --ca <folder-path> -t <file-path>')
     .example('$0 -s s4cred.base64 -f base64', 'Validates a base64 encoded speaks-for credential using bundled CA')
-    .example('$0 -s s4cred.base64 -f base64 -t ./ca', 'Validates a base64 encoded speaks-for credential selecting an specific CA folder')
+    .example('$0 -s s4cred.base64 -f base64 --trustedCA ./ca', 'Validates a base64 encoded speaks-for credential selecting an specific CA folder')
     .example('$0 -v -s s4cred.xml -f xml', 'Validates an xml encoded speaks-for credential with extra verbosity level using bundled CA')
+    .example('$0 -v -s s4cred.xml -f xml -t tool.cert', 'Same as before, but it also validates speaks-for tail section against tool certificate')
+    .example('$0 -v -s s4cred.xml -f xml -k bf844ce5a5f21569c2d5c97d6d1a1c737b5670ab', 'Same as before, but speaks-for tail section validation is done against given keyid')
     .options({
         's': {
             alias: 's4credential',
@@ -33,11 +35,24 @@ var argv = yargs
             description: "Provided Speaks-for credential file format",
             group: 'Speaks-for Parameters'
         },
-        't': {
+        'ca': {
             alias: ['trustedCA'],
             required: false,
             description: "Trusted CA's folder path",
             group: 'Speaks-for Parameters'
+        },
+        't': {
+            alias: ['tc', 'toolcertificate'],
+            required: false,
+            nargs: 1,
+            description: "Tool certificate file path to validate against Speaks-for credential tail section",
+            group: 'Speaker Validation parameters'
+        },
+        'k': {
+            alias: ['keyid', 'keyhash'],
+            required: false,
+            description: "Tool certificate keyhash to be checked against Speaks-for credential tail section",
+            group: 'Speaker Validation parameters'
         },
         'v': {
             alias: 'verbose',
@@ -67,6 +82,12 @@ function INFO() {
 
 function DEBUG() {
     VERBOSE_LEVEL >= 2 && console.log.apply(console, arguments);
+}
+
+// Validate parameter exclusions
+if (argv.keyhash && argv.toolcertificate) {
+    WARN("## ERROR: Both speaker validation options (-k and -t) can't be used at the same time");
+    return;
 }
 
 // Chdir to resources folder
@@ -169,8 +190,31 @@ libxml.Document.fromXmlAsync(s4cred, {}, function(err, doc) {
             }
             INFO("## Stage 5. The keyid of the head matches the credential signer (the SHA1 hash of the public key in the signing certificate)");
 
-            // TODO: Should  Speaks-for credential tail fingerprint (tool keyid) should be checked against tool own certificate?
-
+            if (argv.toolcertificate) {
+                var toolKeyhash = credential.get("abac//tail//keyid").text();
+                var cert = loadPemCertificate(argv.toolcertificate);
+                var certKeyhash = forge.pki.getPublicKeyFingerprint(cert.publicKey, {
+                    encoding: 'hex'
+                });
+                DEBUG("## Speaks-for credential tail section keyhash: %s", toolKeyhash);
+                DEBUG("## Tool certificate keyhash (cli t parameter): %s", certKeyhash);
+                if (certKeyhash != toolKeyhash) {
+                    WARN("## ERROR: The keyid of the Speaks-for credential tail [%s] does not match the -t certificate one [%s]", toolKeyhash, argv.keyid);
+                    return;
+                }
+                INFO("## Stage 6. The keyid of the tail matches the -t certificate one");
+            } else if (argv.keyid) {
+                var toolKeyhash = credential.get("abac//tail//keyid").text();
+                DEBUG("## Speaks-for credential tail section keyhash: %s", toolKeyhash);
+                DEBUG("## Tool certificate keyhash (cli k parameter): %s", argv.keyid);
+                if (argv.keyid != toolKeyhash) {
+                    WARN("## ERROR: The keyid of the Speaks-for credential tail [%s] does not match the -k parameter [%s]", toolKeyhash, argv.keyid);
+                    return;
+                }
+                INFO("## Stage 6. The keyid of the tail matches the -k parameter");
+            } else {
+                WARN("## Verification of the Speaks-for credential tail section was not possible (no -k or -t parameter was included)");
+            }
             WARN("## Speaks-for credential verification succeeded!!");
         });
     });
@@ -180,6 +224,13 @@ function loadSpeaksForCredential(s4credential, isBase64) {
     var bitmap = fs.readFileSync(s4credential, 'utf8');
     var speaksForCredential = new Buffer(bitmap, isBase64 ? 'base64' : 'utf8').toString();
     return speaksForCredential;
+}
+
+function loadPemCertificate(pemfile) {
+    var bitmap = fs.readFileSync(pemfile);
+    var pem = new Buffer(bitmap).toString();
+
+    return forge.pki.certificateFromPem(pem);
 }
 
 function SpeaksForKeyInfo() {
