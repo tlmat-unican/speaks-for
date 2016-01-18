@@ -199,7 +199,7 @@ libxml.Document.fromXmlAsync(s4cred, {}, function(err, doc) {
                 DEBUG("## Speaks-for credential tail section keyhash: %s", toolKeyhash);
                 DEBUG("## Tool certificate keyhash (cli t parameter): %s", certKeyhash);
                 if (certKeyhash != toolKeyhash) {
-                    WARN("## ERROR: The keyid of the Speaks-for credential tail [%s] does not match the -t certificate one [%s]", toolKeyhash, argv.keyid);
+                    WARN("## ERROR: The keyid of the Speaks-for credential tail [%s] does not match the -t certificate one [%s]", toolKeyhash, certKeyhash);
                     return;
                 }
                 INFO("## Stage 6. The keyid of the tail matches the -t certificate one");
