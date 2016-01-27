@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "libxml-xsd": "psotres/node-libxml-xsd#master",
-    "libxmljs-mt": "^0.16.1",
+    "bluebird": "^3.1.4",
+    "libxmljs-mt": "^0.17.0",
     "lodash": "^3.10.1",
     "node-forge": "^0.6.38",
     "openssl-verify": "^0.1.1",
