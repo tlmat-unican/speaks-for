@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 var fs = require("fs");
+var util = require("util");
 var Promise = require("bluebird");
 var _ = require('lodash');
 var xsd = require('libxml-xsd');
@@ -9,9 +10,9 @@ var xmlcrypto = require('xml-crypto');
 var forge = require('node-forge');
 var Dom = require('xmldom').DOMParser;
 
-var openssl = Promise.promisifyAll(require('openssl-verify'));
-
 var utils = require('./utils');
+
+var openssl = Promise.promisifyAll(require('openssl-verify'));
 
 var singleDayMillis = 86400000;
 var yargs = require('yargs');
@@ -113,69 +114,52 @@ INFO("## Loading Speaks-for credential...");
 var s4cred = loadSpeaksForCredential(argv.s4credential, argv.format === 'base64');
 DEBUG("## Speaks-for credential content: \n%s\n", s4cred);
 
-Promise.promisify(libxml.Document.fromXmlAsync)(s4cred, {})
-    .then(function(doc) {
-        var credential = doc.get("/*/credential");
-        var signature = doc.get("/*/signatures/*[local-name(.)='Signature' and namespace-uri(.)='http://www.w3.org/2000/09/xmldsig#']");
-        var x509Node = signature.get("*[name()='KeyInfo']/*[name()='X509Data']");
-        var x509Data = new Dom().parseFromString(x509Node.toString());
-        var signingCertificatePem = (new SpeaksForKeyInfo()).getKey([x509Data]);
-        var trustedCaPath = (argv.trustedCA) ? argv.trustedCA : require('path').resolve(__dirname, 'resources/ca');
+Promise.coroutine(function*(s4credentialXmlString) {
+    var doc = yield Promise.promisify(libxml.Document.fromXmlAsync)(s4credentialXmlString, {});
+    yield validateSpeaksForSchema(xsdSchema, doc);
+    INFO("## Stage 1. Supplied credential validates against the Speaks-for XSD schema");
 
-        return validateSpeaksForSchema(xsdSchema, doc)
-            .then(function() {
-                INFO("## Stage 1. Supplied credential validates against the Speaks-for XSD schema");
-            })
-            .then(function() {
-                return validateSpeaksForXmlSignature(s4cred, signature);
-            })
-            .then(function() {
-                INFO("## Stage 2. XML signature is valid per the XML-DSig standard");
-            })
-            .then(function() {
-                return validateSpeaksForSigningCertificate(signingCertificatePem, trustedCaPath);
-            })
-            .then(function() {
-                INFO("## Stage 3. The signing certificate is valid and trusted");
-            })
-            .then(function() {
-                return verifySpeaksForExpirationDate(credential);
-            })
-            .then(function() {
-                INFO("## Stage 4. The expiration date has not passed");
-            })
-            .then(function() {
-                return verifySpeaksForHeadSection(credential, signingCertificatePem);
-            })
-            .then(function() {
-                INFO("## Stage 5. The keyid of the head matches the credential signer (the SHA1 hash of the public key in the signing certificate)");
-            })
-            .then(function() {
-                if (argv.keyid) {
-                    verifySpeaksForTailSection(credential, argv.keyid);
-                    INFO("## Stage 6. The keyid of the tail matches the -k parameter");
-                } else if (argv.toolcertificate) {
-                    verifySpeaksForTailSectionFromFile(credential, loadPemCertificate(argv.toolcertificate));
-                    INFO("## Stage 6. The keyid of the tail matches the -t certificate one");
-                } else {
-                    WARN("## Verification of the Speaks-for credential tail section was not possible (no -k or -t parameter was included)");
-                }
-            })
-            .then(function() {
-                WARN("## Speaks-for credential verification succeeded!!");
-            });
-    })
-    .catch(function(err) {
-        WARN("## ERROR: %s", err);
-        return 1;
-    });
+    var signature = doc.get("/*/signatures/*[local-name(.)='Signature' and namespace-uri(.)='http://www.w3.org/2000/09/xmldsig#']");
+    validateSpeaksForXmlSignature(s4credentialXmlString, signature);
+    INFO("## Stage 2. XML signature is valid per the XML-DSig standard");
+
+    var x509Node = signature.get("*[name()='KeyInfo']/*[name()='X509Data']");
+    var x509Data = new Dom().parseFromString(x509Node.toString());
+    var signingCertificatePem = (new SpeaksForKeyInfo()).getKey([x509Data]);
+    var trustedCaPath = (argv.trustedCA) ? argv.trustedCA : require('path').resolve(__dirname, 'resources/ca');
+    yield validateSpeaksForSigningCertificate(signingCertificatePem, trustedCaPath);
+    INFO("## Stage 3. The signing certificate is valid and trusted");
+
+    var credential = doc.get("/*/credential");
+    verifySpeaksForExpirationDate(credential);
+    INFO("## Stage 4. The expiration date has not passed");
+
+    verifySpeaksForHeadSection(credential, signingCertificatePem);
+    INFO("## Stage 5. The keyid of the head matches the credential signer (the SHA1 hash of the public key in the signing certificate)");
+
+    if (argv.keyid) {
+        verifySpeaksForTailSection(credential, argv.keyid);
+        INFO("## Stage 6. The keyid of the tail matches the -k parameter");
+    } else if (argv.toolcertificate) {
+        verifySpeaksForTailSectionFromFile(credential, loadPemCertificate(argv.toolcertificate));
+        INFO("## Stage 6. The keyid of the tail matches the -t certificate one");
+    } else {
+        WARN("## Verification of the Speaks-for credential tail section was not possible (no -k or -t parameter was included)");
+    }
+
+    WARN("## Speaks-for credential verification succeeded!!");
+    return 0;
+})(s4cred).catch(function(err) {
+    WARN("## %s", err);
+    return 1;
+});
 
 
 function validateSpeaksForSchema(xsdSchema, xmlDoc) {
     return xsdSchemaValidateAsync(xmlDoc).then(function(validationErrors) {
         // validationErrors is an array, null if the validation is ok
         if (validationErrors) {
-            throw new Error("%s", validationErrors[0]);
+            throw new Error(validationErrors[0]);
         }
         return;
     });
@@ -190,7 +174,7 @@ function validateSpeaksForXmlSignature(s4credentialXmlString, signature) {
     sig.loadSignature(signature.toString());
     var res = sig.checkSignature(s4credentialXmlString);
     if (!res) {
-        throw new Error("%s", sig.validationErrors[0]);
+        throw new Error(sig.validationErrors[0]);
     }
     return;
 }
@@ -203,17 +187,17 @@ function validateSpeaksForSigningCertificate(signingCertificatePem, trustedCaPat
         .then(function(result) {
             var outputMessages = result.output.split('\n');
             if (!result.validCert) {
-                throw new Error("%s", outputMessages[0]);
+                throw new Error(outputMessages[0]);
             } else {
                 DEBUG("## The Speaks-for signing certificate is valid");
             }
             if (!result.verifiedCA) {
-                throw new Error("Speaks-for signing certificate is not trusted. Reason: %s", outputMessages[1]);
+                throw new Error(util.format("Speaks-for signing certificate is not trusted. Reason: %s", outputMessages[1]));
             } else {
                 DEBUG("## The Speaks-for signing certificate chain of trust has been verified");
             }
             if (result.expired) {
-                throw new Error("Speaks-for signing certificate is not acceptable. Reason: %s", outputMessages[1]);
+                throw new Error(util.format("Speaks-for signing certificate is not acceptable. Reason: %s", outputMessages[1]));
             }
             return;
         });
@@ -223,7 +207,7 @@ function verifySpeaksForExpirationDate(s4credential) {
     var expirationDateStr = s4credential.get("expires").text();
     DEBUG("## Speaks-for expiration date: %s", expirationDateStr);
     if (new Date(expirationDateStr) < new Date()) {
-        throw new Error("Speaks-for credential expired on %s", expirationDateStr);
+        throw new Error(util.format("Speaks-for credential expired on %s", expirationDateStr));
     }
     return;
 }
@@ -237,8 +221,8 @@ function verifySpeaksForHeadSection(s4credential, signingCertificatePem) {
     DEBUG("## Speaks-for credential head section keyhash: %s", credentialKeyhash);
     DEBUG("## Speaks-for credential signing cert keyhash: %s", signingKeyhash);
     if (signingKeyhash != credentialKeyhash) {
-        throw new Error("The keyid of the Speaks-for credential head [%s] does not match the credential signer one [%s]",
-            credentialKeyhash, signingKeyhash);
+        throw new Error(util.format("The keyid of the Speaks-for credential head [%s] does not match the credential signer one [%s]",
+            credentialKeyhash, signingKeyhash));
     }
     return;
 }
@@ -248,8 +232,8 @@ function verifySpeaksForTailSection(s4credential, keyid) {
     DEBUG("## Speaks-for credential tail section keyhash: %s", toolKeyhash);
     DEBUG("## Tool certificate keyhash (cli k parameter): %s", keyid);
     if (argv.keyid !== toolKeyhash) {
-        throw new Error("The keyid of the Speaks-for credential tail [%s] does not match the -k parameter [%s]",
-            toolKeyhash, keyid);
+        throw new Error(util.format("The keyid of the Speaks-for credential tail [%s] does not match the -k parameter [%s]",
+            toolKeyhash, keyid));
     }
     return;
 }
@@ -263,8 +247,8 @@ function verifySpeaksForTailSectionFromFile(s4credential, toolCertificatePem) {
     DEBUG("## Speaks-for credential tail section keyhash: %s", toolKeyhash);
     DEBUG("## Tool certificate keyhash (cli t parameter): %s", certKeyhash);
     if (certKeyhash !== toolKeyhash) {
-        throw new Error("The keyid of the Speaks-for credential tail [%s] does not match the -t certificate one [%s]",
-            toolKeyhash, certKeyhash);
+        throw new Error(util.format("The keyid of the Speaks-for credential tail [%s] does not match the -t certificate one [%s]",
+            toolKeyhash, certKeyhash));
     }
     return;
 }
