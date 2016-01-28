@@ -39,12 +39,16 @@ Fed4FIRE - University of Cantabria - Copyright 2016
 ## Credential validation
 
 ```
-Usage: validate-speaks-for -s <file-path> -f <base64|xml> -t <folder-path>
+Usage: validate-speaks-for -s <file-path> -f <base64|xml> --ca <folder-path> -t <file-path>
 
 Speaks-for Parameters
   -s, --s4credential  Speaks-for credential file                                                         [required]
   -f, --format        Provided Speaks-for credential file format              [required] [choices: "base64", "xml"]
-  -t, --trustedCA     Trusted CA's folder path
+  --ca, --trustedCA   Trusted CA's folder path
+
+Speaker Validation parameters
+  -t, --tc, --toolcertificate  Tool certificate file path to validate against Speaks-for credential tail section
+  -k, --keyid, --keyhash       Tool certificate keyhash to be checked against Speaks-for credential tail section
 
 Options:
   -v, --verbose  Verbosity level (none, -v or -vv)                                                          [count]
@@ -52,12 +56,16 @@ Options:
   --version      Show version number                                                                      [boolean]
 
 Examples:
-  validate-speaks-for -s s4cred.base64 -f base64          Validates a base64 encoded speaks-for credential using
-                                                          bundled CA
-  validate-speaks-for -s s4cred.base64 -f base64 -t ./ca  Validates a base64 encoded speaks-for credential
-                                                          selecting an specific CA folder
-  validate-speaks-for -v -s s4cred.xml -f xml             Validates an xml encoded speaks-for credential with extra
-                                                          verbosity level using bundled CA
+  validate-speaks-for -s s4cred.base64 -f base64             Validates a base64 encoded speaks-for credential using
+                                                             bundled CA
+  validate-speaks-for -s s4cred.base64 -f base64             Validates a base64 encoded speaks-for credential
+  --trustedCA ./ca                                           selecting an specific CA folder
+  validate-speaks-for -v -s s4cred.xml -f xml                Validates an xml encoded speaks-for credential with
+                                                             extra verbosity level using bundled CA
+  validate-speaks-for -v -s s4cred.xml -f xml -t tool.cert   Same as before, but it also validates speaks-for tail
+                                                             section against tool certificate
+  validate-speaks-for -v -s s4cred.xml -f xml -k             Same as before, but speaks-for tail section validation
+  bf844ce5a5f21569c2d5c97d6d1a1c737b5670ab                   is done against given keyid
 
 Fed4FIRE - University of Cantabria - Copyright 2016
 ```
