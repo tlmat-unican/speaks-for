@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+var fs = require("fs");
 var Promise = require("bluebird");
 var _ = require('lodash');
 var xsd = require('libxml-xsd');
@@ -8,7 +9,6 @@ var xmlcrypto = require('xml-crypto');
 var forge = require('node-forge');
 var Dom = require('xmldom').DOMParser;
 
-var fs = Promise.promisifyAll(require("fs"));
 var openssl = Promise.promisifyAll(require('openssl-verify'));
 
 var utils = require('./utils');
@@ -124,19 +124,14 @@ Promise.promisify(libxml.Document.fromXmlAsync)(s4cred, {})
 
         return validateSpeaksForSchema(xsdSchema, doc)
             .thenReturn(INFO("## Stage 1. Supplied credential validates against the Speaks-for XSD schema"))
-            //.tap(_.partial(INFO, "## Stage 1. Supplied credential validates against the Speaks-for XSD schema"))
             .thenReturn(validateSpeaksForXmlSignature(s4cred, signature))
             .thenReturn(INFO("## Stage 2. XML signature is valid per the XML-DSig standard"))
-            //.tap(_.partial(INFO, "## Stage 2. XML signature is valid per the XML-DSig standard"))
             .thenReturn(validateSpeaksForSigningCertificate(signingCertificatePem, trustedCaPath))
             .thenReturn(INFO("## Stage 3. The signing certificate is valid and trusted"))
-            //.tap(_.partial(INFO, "## Stage 3. The signing certificate is valid and trusted"))
             .thenReturn(verifySpeaksForExpirationDate(credential))
             .thenReturn(INFO("## Stage 4. The expiration date has not passed"))
-            //.tap(_.partial(INFO, "## Stage 4. The expiration date has not passed"))
             .thenReturn(verifySpeaksForHeadSection(credential, signingCertificatePem))
             .thenReturn(INFO("## Stage 5. The keyid of the head matches the credential signer (the SHA1 hash of the public key in the signing certificate)"))
-            //.tap(_.partial(INFO, "## Stage 5. The keyid of the head matches the credential signer (the SHA1 hash of the public key in the signing certificate)"))
             .then(function() {
                 if (argv.keyid) {
                     verifySpeaksForTailSection(credential, argv.keyid);
@@ -165,17 +160,6 @@ function validateSpeaksForSchema(xsdSchema, xmlDoc) {
         return;
     });
 }
-
-/*
-function validateSpeaksForSchema(xsdSchema, xmlDoc) {
-    var validationErrors = xsdSchema.validate(xmlDoc);
-    // validationErrors is an array, null if the validation is ok
-    if (validationErrors) {
-        throw new Error("%s", validationErrors[0]);
-    }
-    return;
-}
-*/
 
 function validateSpeaksForXmlSignature(s4credentialXmlString, signature) {
     utils.monkeyPatchSignedXmlExclusiveCanonicalization(xmlcrypto);
@@ -233,7 +217,8 @@ function verifySpeaksForHeadSection(s4credential, signingCertificatePem) {
     DEBUG("## Speaks-for credential head section keyhash: %s", credentialKeyhash);
     DEBUG("## Speaks-for credential signing cert keyhash: %s", signingKeyhash);
     if (signingKeyhash != credentialKeyhash) {
-        throw new Error("The keyid of the Speaks-for credential head [%s] does not match the credential signer one [%s]", credentialKeyhash, signingKeyhash);
+        throw new Error("The keyid of the Speaks-for credential head [%s] does not match the credential signer one [%s]",
+            credentialKeyhash, signingKeyhash);
     }
     return;
 }
@@ -243,7 +228,8 @@ function verifySpeaksForTailSection(s4credential, keyid) {
     DEBUG("## Speaks-for credential tail section keyhash: %s", toolKeyhash);
     DEBUG("## Tool certificate keyhash (cli k parameter): %s", keyid);
     if (argv.keyid !== toolKeyhash) {
-        throw new Error("The keyid of the Speaks-for credential tail [%s] does not match the -k parameter [%s]", toolKeyhash, keyid);
+        throw new Error("The keyid of the Speaks-for credential tail [%s] does not match the -k parameter [%s]",
+            toolKeyhash, keyid);
     }
     return;
 }
@@ -257,7 +243,8 @@ function verifySpeaksForTailSectionFromFile(s4credential, toolCertificatePem) {
     DEBUG("## Speaks-for credential tail section keyhash: %s", toolKeyhash);
     DEBUG("## Tool certificate keyhash (cli t parameter): %s", certKeyhash);
     if (certKeyhash !== toolKeyhash) {
-        throw new Error("The keyid of the Speaks-for credential tail [%s] does not match the -t certificate one [%s]", toolKeyhash, certKeyhash);
+        throw new Error("The keyid of the Speaks-for credential tail [%s] does not match the -t certificate one [%s]",
+            toolKeyhash, certKeyhash);
     }
     return;
 }
@@ -268,24 +255,10 @@ function loadSpeaksForCredential(s4credential, isBase64) {
     return speaksForCredential;
 }
 
-function loadSpeaksForCredentialAsync(s4credential, isBase64) {
-    return fs.readFileAsync(s4credential, 'utf8')
-        .then(function(bitmap) {
-            return new Buffer(bitmap, isBase64 ? 'base64' : 'utf8').toString();
-        });
-}
-
 function loadPemCertificate(pemfile) {
     var bitmap = fs.readFileSync(pemfile);
     var pem = new Buffer(bitmap).toString();
     return pem;
-}
-
-function loadPemCertificateAsync(pemfile) {
-    return fs.readFileAsync(pemfile)
-        .then(function(bitmap) {
-            return new Buffer(bitmap).toString();
-        });
 }
 
 function SpeaksForKeyInfo() {
