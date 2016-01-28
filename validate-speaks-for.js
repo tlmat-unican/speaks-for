@@ -123,15 +123,33 @@ Promise.promisify(libxml.Document.fromXmlAsync)(s4cred, {})
         var trustedCaPath = (argv.trustedCA) ? argv.trustedCA : require('path').resolve(__dirname, 'resources/ca');
 
         return validateSpeaksForSchema(xsdSchema, doc)
-            .thenReturn(INFO("## Stage 1. Supplied credential validates against the Speaks-for XSD schema"))
-            .thenReturn(validateSpeaksForXmlSignature(s4cred, signature))
-            .thenReturn(INFO("## Stage 2. XML signature is valid per the XML-DSig standard"))
-            .thenReturn(validateSpeaksForSigningCertificate(signingCertificatePem, trustedCaPath))
-            .thenReturn(INFO("## Stage 3. The signing certificate is valid and trusted"))
-            .thenReturn(verifySpeaksForExpirationDate(credential))
-            .thenReturn(INFO("## Stage 4. The expiration date has not passed"))
-            .thenReturn(verifySpeaksForHeadSection(credential, signingCertificatePem))
-            .thenReturn(INFO("## Stage 5. The keyid of the head matches the credential signer (the SHA1 hash of the public key in the signing certificate)"))
+            .then(function() {
+                INFO("## Stage 1. Supplied credential validates against the Speaks-for XSD schema");
+            })
+            .then(function() {
+                return validateSpeaksForXmlSignature(s4cred, signature);
+            })
+            .then(function() {
+                INFO("## Stage 2. XML signature is valid per the XML-DSig standard");
+            })
+            .then(function() {
+                return validateSpeaksForSigningCertificate(signingCertificatePem, trustedCaPath);
+            })
+            .then(function() {
+                INFO("## Stage 3. The signing certificate is valid and trusted");
+            })
+            .then(function() {
+                return verifySpeaksForExpirationDate(credential);
+            })
+            .then(function() {
+                INFO("## Stage 4. The expiration date has not passed");
+            })
+            .then(function() {
+                return verifySpeaksForHeadSection(credential, signingCertificatePem);
+            })
+            .then(function() {
+                INFO("## Stage 5. The keyid of the head matches the credential signer (the SHA1 hash of the public key in the signing certificate)");
+            })
             .then(function() {
                 if (argv.keyid) {
                     verifySpeaksForTailSection(credential, argv.keyid);
@@ -143,7 +161,9 @@ Promise.promisify(libxml.Document.fromXmlAsync)(s4cred, {})
                     WARN("## Verification of the Speaks-for credential tail section was not possible (no -k or -t parameter was included)");
                 }
             })
-            .thenReturn(WARN("## Speaks-for credential verification succeeded!!"));
+            .then(function() {
+                WARN("## Speaks-for credential verification succeeded!!");
+            });
     })
     .catch(function(err) {
         WARN("## ERROR: %s", err);
