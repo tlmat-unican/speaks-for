@@ -16,17 +16,6 @@ var argv = yargs
     .example('$0 --credential user123.pem --format pem --password 123456 --toolcertificate yourepm.pem --duration 365', 'The Fed4FIRE user credential is PEM formatted, and access is delegated during 1 year')
     .example('$0 -vv -c user123.p12 -f pem -p 123456 -t yourepm.pem -d 365 -o s4cred.base64', 'Same command as previous one, but with DEBUG verbosity and storing the result on an output file')
     .options({
-        'o': {
-            alias: 'output',
-            required: false,
-            nargs: 1,
-            description: "Output file to store speaks-for credential (base64 encoded)"
-        },
-        'v': {
-            alias: 'verbose',
-            count: true,
-            description: "Verbosity level (none, -v or -vv)"
-        },
         'c': {
             alias: 'credential',
             required: true,
@@ -63,6 +52,17 @@ var argv = yargs
             default: 120,
             description: "Number of days the speaks-for credential will be valid",
             group: 'Speaks-for Parameters'
+        },
+        'o': {
+            alias: 'output',
+            required: false,
+            nargs: 1,
+            description: "Output file to store speaks-for credential (base64 encoded)"
+        },
+        'v': {
+            alias: 'verbose',
+            count: true,
+            description: "Verbosity level (none, -v or -vv)"
         }
     })
     .help('h')
