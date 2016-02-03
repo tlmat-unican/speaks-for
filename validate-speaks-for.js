@@ -14,7 +14,6 @@ var utils = require('./utils');
 
 var openssl = Promise.promisifyAll(require('openssl-verify'));
 
-var singleDayMillis = 86400000;
 var yargs = require('yargs');
 var argv = yargs
     .usage('Usage: $0 -s <file-path> -f <base64|xml> --ca <folder-path> -t <file-path>')
