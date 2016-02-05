@@ -94,19 +94,11 @@ if (argv.keyhash && argv.toolcertificate) {
     return;
 }
 
-// Chdir to resources folder
-var olddir = process.cwd();
-process.chdir(require('path').resolve(__dirname, 'resources'));
-
-// Load XSD schema (due to its dependencies, it needs to be done on 'resources' folder)
-var xsdstr = fs.readFileSync('credential.xsd', "utf8");
-var xsdSchema = xsd.parse(xsdstr);
+// Load Speaks-for XSD schema
+var xsdSchema = loadXsdSchemaSync(require('path').resolve(__dirname, 'resources'), 'credential.xsd');
 var xsdSchemaValidateAsync = Promise.promisify(xsdSchema.validate, {
     context: xsdSchema
 });
-
-// Chdir to previous working folder
-process.chdir(olddir);
 
 // Load Speaks-for Credential
 INFO("## Loading Speaks-for credential...");
@@ -250,6 +242,14 @@ function verifySpeaksForTailSectionFromFile(s4credential, toolCertificatePem) {
             toolKeyhash, certKeyhash));
     }
     return;
+}
+
+function loadXsdSchemaSync(path, name) {
+    var olddir = process.cwd();
+    process.chdir(path);
+    var xsdSchema = xsd.parse(fs.readFileSync(name, "utf8"));
+    process.chdir(olddir);
+    return xsdSchema;
 }
 
 function loadSpeaksForCredential(s4credential, isBase64) {
