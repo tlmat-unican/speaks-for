@@ -28,4 +28,5 @@ node_modules
 
 speaks-for.sublime-workspace
 speaks-for.sublime-project
+resources/ca/
 env/
