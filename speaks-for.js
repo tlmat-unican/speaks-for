@@ -111,7 +111,7 @@ try {
     var toolKeyhash = forge.pki.getPublicKeyFingerprint(toolCertificate.publicKey, {
         encoding: 'hex'
     });
-    INFO("## Tool certificate keyhash: %s", userKeyhash);
+    INFO("## Tool certificate keyhash: %s", toolKeyhash);
 
 
     // Calculate expiration time
