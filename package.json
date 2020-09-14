@@ -18,7 +18,7 @@
     "bluebird": "^3.1.4",
     "libxmljs-mt": "^0.17.0",
     "lodash": "^3.10.1",
-    "node-forge": "^0.6.38",
+    "node-forge": "^0.10.0",
     "openssl-verify": "^0.1.1",
     "pretty-data": "^0.40.0",
     "xml-crypto": "^0.8.1",
