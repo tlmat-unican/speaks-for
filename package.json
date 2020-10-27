@@ -21,7 +21,7 @@
     "node-forge": "^0.6.38",
     "openssl-verify": "^0.1.1",
     "pretty-data": "^0.40.0",
-    "xml-crypto": "^0.8.1",
+    "xml-crypto": "^2.0.0",
     "xmldom": "^0.1.20",
     "yargs": "^3.30.0"
   },
